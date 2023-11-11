@@ -14,10 +14,10 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         eprintln!("Error: Not a flutter project\n{}", err);
         process::exit(1);
     });
-    
+
     println!("flutter project found...");
     println!("🚀 Running flutter build...");
-    run_flutter_build(path).unwrap_or_else(|err| {
+    run_flutter_build(config).unwrap_or_else(|err| {
         eprintln!("⚠️ Error: Failed to run flutter build..\n{}", err);
         process::exit(1);
     });
@@ -35,12 +35,12 @@ fn check_if_in_flutter_project(path: &str) -> io::Result<()> {
             new_path
         );
         Err(io::Error::new(io::ErrorKind::NotFound, msg))
-    } 
+    }
 }
 
-fn run_flutter_build(path: &str) -> Result<(), Box<dyn Error>> {
+fn run_flutter_build(config: Config) -> Result<(), Box<dyn Error>> {
     let mut run_flutter = Command::new("flutter")
-        .current_dir(path)
+        .current_dir(config.path)
         .arg("build")
         .arg("apk")
         .spawn()?;
