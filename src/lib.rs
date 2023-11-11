@@ -2,7 +2,7 @@ use std::process::Command;
 use std::{error::Error, path::Path};
 use std::{fs, io, process};
 
-use google_drive3::{hyper, hyper_rustls, DriveHub, oauth2};
+use google_drive3::{hyper, hyper_rustls, oauth2, DriveHub};
 
 pub use config::Config;
 
@@ -63,16 +63,8 @@ fn run_flutter_build(config: &Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-// fn open_file_path(path: &str) -> Result<(), Box<dyn Error>> {
-//     let mut run_open_path = Command::new("open")
-//         .current_dir(path)
-//         .arg("./build/app/outputs/flutter-apk/")
-//         .spawn()?;
-//     run_open_path.wait()?;
-//     Ok(())
-// }
-
-// async fn google_authenticate() -> Result<AccessToken, Box<dyn Error>> {
+// async fn google_drive_authenticate(
+// ) -> Result<(), Box<dyn Error>> {
 //     let secret = oauth2::read_application_secret("client_secret.json").await?;
 //     let auth = oauth2::InstalledFlowAuthenticator::builder(
 //         secret,
@@ -80,11 +72,15 @@ fn run_flutter_build(config: &Config) -> Result<(), Box<dyn Error>> {
 //     )
 //     .build()
 //     .await?;
-//     let token = auth
-//         .token(&["https://www.googleapis.com/auth/drive.file"])
-//         .await?;
-//     println!("{:?}", token);
-//     Ok(token)
+
+//     let connector = hyper_rustls::HttpsConnectorBuilder::new()
+//         .with_native_roots()
+//         .https_or_http()
+//         .enable_http1()
+//         .build();
+//     let hub = DriveHub::new(hyper::Client::builder().build(connector), auth);
+
+//     Ok(hub);
 // }
 
 async fn upload_file_to_drive(full_path: &str) -> Result<(), Box<dyn Error>> {
