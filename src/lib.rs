@@ -63,26 +63,6 @@ fn run_flutter_build(config: &Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-// async fn google_drive_authenticate(
-// ) -> Result<(), Box<dyn Error>> {
-//     let secret = oauth2::read_application_secret("client_secret.json").await?;
-//     let auth = oauth2::InstalledFlowAuthenticator::builder(
-//         secret,
-//         oauth2::InstalledFlowReturnMethod::HTTPRedirect,
-//     )
-//     .build()
-//     .await?;
-
-//     let connector = hyper_rustls::HttpsConnectorBuilder::new()
-//         .with_native_roots()
-//         .https_or_http()
-//         .enable_http1()
-//         .build();
-//     let hub = DriveHub::new(hyper::Client::builder().build(connector), auth);
-
-//     Ok(hub);
-// }
-
 async fn upload_file_to_drive(full_path: &str) -> Result<(), Box<dyn Error>> {
     let secret = oauth2::read_application_secret("client_secret.json").await?;
     let auth = oauth2::InstalledFlowAuthenticator::builder(
@@ -105,6 +85,7 @@ async fn upload_file_to_drive(full_path: &str) -> Result<(), Box<dyn Error>> {
 
     let file_metadata = google_drive3::api::File {
         name: Some("apk-ri".to_string()),
+        // parents: Some(vec!["Recon".to_string()]),
         ..Default::default()
     };
 
@@ -124,6 +105,10 @@ async fn upload_file_to_drive(full_path: &str) -> Result<(), Box<dyn Error>> {
             "application/vnd.android.package-archive".parse().unwrap(),
         )
         .await?;
+
+    println!("\n{:?}", _resp);
+    let file_url = format!("https://drive.google.com/file/d/{}/view", _file.id.unwrap());
+    println!("\n{:?}", file_url);
 
     Ok(())
 }
