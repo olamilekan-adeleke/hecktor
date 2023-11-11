@@ -1,12 +1,14 @@
 use std::process::Command;
 use std::{error::Error, path::Path};
-use std::{io, process, fs};
+use std::{fs, io, process};
+
+use google_drive3::{hyper, hyper_rustls, DriveHub, oauth2};
 
 pub use config::Config;
 
 mod config;
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+pub async fn run(config: Config) -> Result<(), Box<dyn Error>> {
     println!("Checking if in a Flutter project...");
 
     let path: &str = config.path.as_str();
@@ -23,14 +25,15 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     });
 
     println!("\n✅ Flutter build completed...");
-    println!("Opening apk path...");
-    open_file_path(path)?;
+    // println!("Requesting for upload permission...");
+    // let token = google_authenticate().await.unwrap_or_else(|err| {
+    //     eprintln!("Error: Authorization Failed\n{}", err);
+    //     process::exit(1);
+    // });
 
-    println!("\nGetting File");
+    println!("\n Uploading File to google drive");
     let full_path = format!("{}/build/app/outputs/flutter-apk/app-release.apk", path);
-    let file = fs::read(full_path)?;
-    println!("{:?}", String::from_utf8_lossy(&file));
-
+    upload_file_to_drive(&full_path.as_str()).await?;
 
     Ok(())
 }
@@ -60,12 +63,71 @@ fn run_flutter_build(config: &Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn open_file_path(path: &str) -> Result<(), Box<dyn Error>> {
-    let mut run_open_path = Command::new("open")
-        .current_dir(path)
-        .arg("./build/app/outputs/flutter-apk/")
-        .spawn()?;
+// fn open_file_path(path: &str) -> Result<(), Box<dyn Error>> {
+//     let mut run_open_path = Command::new("open")
+//         .current_dir(path)
+//         .arg("./build/app/outputs/flutter-apk/")
+//         .spawn()?;
+//     run_open_path.wait()?;
+//     Ok(())
+// }
 
-    run_open_path.wait()?;
+// async fn google_authenticate() -> Result<AccessToken, Box<dyn Error>> {
+//     let secret = oauth2::read_application_secret("client_secret.json").await?;
+//     let auth = oauth2::InstalledFlowAuthenticator::builder(
+//         secret,
+//         oauth2::InstalledFlowReturnMethod::HTTPRedirect,
+//     )
+//     .build()
+//     .await?;
+//     let token = auth
+//         .token(&["https://www.googleapis.com/auth/drive.file"])
+//         .await?;
+//     println!("{:?}", token);
+//     Ok(token)
+// }
+
+async fn upload_file_to_drive(full_path: &str) -> Result<(), Box<dyn Error>> {
+    let secret = oauth2::read_application_secret("client_secret.json").await?;
+    let auth = oauth2::InstalledFlowAuthenticator::builder(
+        secret,
+        oauth2::InstalledFlowReturnMethod::HTTPRedirect,
+    )
+    .build()
+    .await?;
+
+    let hub = DriveHub::new(
+        hyper::Client::builder().build(
+            hyper_rustls::HttpsConnectorBuilder::new()
+                .with_native_roots()
+                .https_or_http()
+                .enable_http1()
+                .build(),
+        ),
+        auth,
+    );
+
+    let file_metadata = google_drive3::api::File {
+        name: Some("apk-ri".to_string()),
+        ..Default::default()
+    };
+
+    let upload_file = match fs::File::open(Path::new(full_path)) {
+        Ok(f) => f,
+        Err(err) => {
+            panic!("Could not open file: {}", err);
+        }
+    };
+
+    // Create a request to create a new file
+    let (_resp, _file) = hub
+        .files()
+        .create(file_metadata)
+        .upload_resumable(
+            upload_file,
+            "application/vnd.android.package-archive".parse().unwrap(),
+        )
+        .await?;
+
     Ok(())
 }
