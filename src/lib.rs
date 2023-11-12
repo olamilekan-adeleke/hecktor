@@ -23,17 +23,15 @@ pub async fn run(config: Config) -> Result<(), Box<dyn Error>> {
         eprintln!("⚠️ Error: Failed to run Flutter build..\n{}", err);
         process::exit(1);
     });
-
     println!("\n✅ Flutter build completed...");
-    // println!("Requesting for upload permission...");
-    // let token = google_authenticate().await.unwrap_or_else(|err| {
-    //     eprintln!("Error: Authorization Failed\n{}", err);
-    //     process::exit(1);
-    // });
 
-    println!("\n Uploading File to google drive");
+    println!("...Begin Authorization to Google Drive...");
     let full_path = format!("{}/build/app/outputs/flutter-apk/app-release.apk", path);
-    let _ = upload_file_to_drive(&full_path.as_str()).await?;
+    let upload_result = upload_file_to_drive(full_path.as_str()).await;
+    upload_result.unwrap_or_else(|err| {
+        eprintln!("Error: Failed to upload file to google drive\n{}", err);
+        process::exit(1);
+    });
 
     Ok(())
 }
@@ -64,7 +62,6 @@ fn run_flutter_build(config: &Config) -> Result<(), Box<dyn Error>> {
 }
 
 async fn upload_file_to_drive(full_path: &str) -> Result<(), Box<dyn Error>> {
-    println!("\n Begin Authorization to Google Drive");
     let secret = oauth2::read_application_secret("client_secret.json").await?;
     let auth = oauth2::InstalledFlowAuthenticator::builder(
         secret,
