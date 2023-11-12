@@ -33,7 +33,7 @@ pub async fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     println!("\n Uploading File to google drive");
     let full_path = format!("{}/build/app/outputs/flutter-apk/app-release.apk", path);
-    upload_file_to_drive(&full_path.as_str()).await?;
+    let _ = upload_file_to_drive(&full_path.as_str()).await?;
 
     Ok(())
 }
@@ -64,6 +64,7 @@ fn run_flutter_build(config: &Config) -> Result<(), Box<dyn Error>> {
 }
 
 async fn upload_file_to_drive(full_path: &str) -> Result<(), Box<dyn Error>> {
+    println!("\n Begin Authorization to Google Drive");
     let secret = oauth2::read_application_secret("client_secret.json").await?;
     let auth = oauth2::InstalledFlowAuthenticator::builder(
         secret,
@@ -96,6 +97,7 @@ async fn upload_file_to_drive(full_path: &str) -> Result<(), Box<dyn Error>> {
         }
     };
 
+    println!("\n Flutter build file is been uploaded now ....");
     // Create a request to create a new file
     let (_resp, _file) = hub
         .files()
@@ -106,9 +108,10 @@ async fn upload_file_to_drive(full_path: &str) -> Result<(), Box<dyn Error>> {
         )
         .await?;
 
-    println!("\n{:?}", _resp);
+    println!("\n✅ Flutter build successfully uploaded to google drive...");
     let file_url = format!("https://drive.google.com/file/d/{}/view", _file.id.unwrap());
     println!("\n{:?}", file_url);
+    _ = open::that(file_url);
 
     Ok(())
 }

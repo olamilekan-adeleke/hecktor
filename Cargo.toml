@@ -10,3 +10,5 @@ google-drive3 = "5.0.3"
 serde = "^1.0"
 serde_json = "^1.0"
 tokio = { version = "1", features = ["full"] }
+open = "5.0.0"
+
